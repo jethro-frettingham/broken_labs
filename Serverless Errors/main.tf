@@ -76,8 +76,10 @@ resource "aws_lambda_function" "processor" {
   role             = aws_iam_role.lambda_role.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  source_code_hash = filebase64sha256("${path.module}/lambda.zip")
+  source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 10
+
+  depends_on = [data.archive_file.lambda]
 
   environment {
     variables = {
@@ -96,7 +98,7 @@ resource "aws_lambda_function" "processor" {
 # the SQS queue ARN as the event_source_arn. Lambda will never
 # receive any SQS events.
 resource "aws_lambda_event_source_mapping" "sqs_trigger" {
-  event_source_arn = aws_lambda_function.processor.arn
+  event_source_arn = aws_sqs_queue.messages.arn
   function_name    = aws_lambda_function.processor.arn
   batch_size       = 1
   enabled          = true
